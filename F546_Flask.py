@@ -3,12 +3,22 @@ import requests
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
+
+
 app = Flask(__name__)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@localhost/F546'
 
+class MainResult(db.Model):
+    metadata_key = db.Column(db.String(128), primary_key=True)
+
+    def __init__(self, metadata_key):
+        self.metadata_key = metadata_key
+
+
+host = "http://hpc-perfsonar.usc.edu/esmond/perfsonar/archive/";
 
 
 @app.route('/')
@@ -19,12 +29,15 @@ def hello_world():
 # Populate Everything
 @app.route('/populateTraceroute')
 def populateDB():
-    r = requests.get('https://api.github.com/events')
-    r.json()
+    params = {'format': 'json', 'event-type': 'packet-trace','time-range':'86000'}
+    response = requests.get(host, params=params).json()
 
-    for newResult in r.json():
+    #
+
+    for newResult in response:
+        print newResult['url']
         # check for existing records
-        toBeAdded = MainResult('x')
+        toBeAdded = MainResult(newResult['metadata-key'])
         db.session.add(toBeAdded)
         db.session.commit()
 
@@ -50,10 +63,9 @@ if __name__ == '__main__':
 
 
 
-class MainResult(db.Model):
-    metadata_key = db.Column(db.String(128), primary_key=True)
-    url = db.Column(db.String(128))
-    subject_type = db.Column(db.String(50))
+
+    # url = db.Column(db.String(128))
+    # subject_type = db.Column(db.String(50))
     # source = db.Column(db.String)
     # destination = db.Column(db.String)
     # measurement_agent = db.Column(db.String)
