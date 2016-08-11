@@ -3,19 +3,41 @@ import requests
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
-
-
 app = Flask(__name__)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@localhost/F546'
 
+
 class MainResult(db.Model):
     metadata_key = db.Column(db.String(128), primary_key=True)
+    url = db.Column(db.String(128))
+    subject_type = db.Column(db.String(50))
+    source = db.Column(db.String(50))
+    destination = db.Column(db.String(50))
+    measurement_agent = db.Column(db.String(50))
+    tool_name = db.Column(db.String(50))
+    input_source = db.Column(db.String(50))
+    input_destination = db.Column(db.String(50))
+    time_interval = db.Column(db.String(50))
+    ip_transport_protocol = db.Column(db.String(50))
+    uri = db.Column(db.String(128))
 
-    def __init__(self, metadata_key):
+    def __init__(self, metadata_key, url, subject_type, source, destination, measurement_agent, tool_name, input_source,
+                 input_destination, time_interval, ip_transport_protocol, uri):
         self.metadata_key = metadata_key
+        self.url = url
+        self.subject_type = subject_type
+        self.source = source
+        self.destination = destination
+        self.measurement_agent = measurement_agent
+        self.tool_name = tool_name
+        self.input_source = input_source
+        self.input_destination = input_destination
+        self.time_interval = time_interval
+        self.ip_transport_protocol = ip_transport_protocol
+        self.uri = uri
 
 
 host = "http://hpc-perfsonar.usc.edu/esmond/perfsonar/archive/";
@@ -29,15 +51,21 @@ def hello_world():
 # Populate Everything
 @app.route('/populateTraceroute')
 def populateDB():
-    params = {'format': 'json', 'event-type': 'packet-trace','time-range':'86000'}
-    response = requests.get(host, params=params).json()
+    mainParams = {'format': 'json', 'event-type': 'packet-trace', 'time-range': '86000'}
+    response = requests.get(host, params=mainParams).json()
 
     #
 
     for newResult in response:
         print newResult['url']
-        # check for existing records
-        toBeAdded = MainResult(newResult['metadata-key'])
+        # Following keys may not be present
+        # trace-max-ttl
+        # ip-packet-size
+
+        toBeAdded = MainResult(newResult['metadata-key'], newResult['url'], newResult['subject-type'],
+                               newResult['source'], newResult['destination'], newResult['measurement-agent'],
+                               newResult['tool-name'], newResult['input-source'], newResult['input-destination'],
+                               newResult['time-interval'], newResult['ip-transport-protocol'], newResult['uri'])
         db.session.add(toBeAdded)
         db.session.commit()
 
@@ -55,7 +83,6 @@ def hello_world2():
 @app.route('/a')
 def hello_world3():
     return 'Hello World!'
-
 
 
 if __name__ == '__main__':
@@ -93,7 +120,8 @@ class IndividualTracerouteResult(db.Model):
 
 class IndividualTraceroute_SubResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-#     ip = db.Column(db.String)
+
+# ip = db.Column(db.String)
 #     success = db.Column(db.String)
 #     error_message = db.Column(db.String)
 #     mtu = db.Column(db.String)
