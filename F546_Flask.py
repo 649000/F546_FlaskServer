@@ -2,6 +2,7 @@ from flask import Flask
 import requests
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from models import *
 
 app = Flask(__name__)
 db = SQLAlchemy(app)
@@ -9,8 +10,6 @@ migrate = Migrate(app, db)
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@localhost/F546'
 host = "http://hpc-perfsonar.usc.edu/esmond/perfsonar/archive/"
-
-
 
 
 class MainResult(db.Model):
@@ -29,7 +28,7 @@ class MainResult(db.Model):
     time_interval = db.Column(db.String(50))
     ip_transport_protocol = db.Column(db.String(50))
     uri = db.Column(db.String(128))
-    individualResults = db.relationship('IndividualTracerouteResult_Value', backref='mainresult', lazy='dynamic',
+    individualResults = db.relationship('IndividualTracerouteResult', backref='mainresult_renamed', lazy='dynamic',
                                         cascade="all, delete-orphan")
 
     def __init__(self, metadata_key, url, subject_type, source, destination, measurement_agent, tool_name, input_source,
@@ -47,9 +46,14 @@ class MainResult(db.Model):
         self.ip_transport_protocol = ip_transport_protocol
         self.uri = uri
 
-class IndividualTracerouteResult_Value(db.Model):
-    __tablename__ = "individualtracerouteresult_value"
+    def __repr__(self):
+        return '<MR:{}>'.format(self.metadata_key)
 
+
+class IndividualTracerouteResult(db.Model):
+    __tablename__ = "individualtracerouteresult"
+
+    #mainresult as that's the table's name.
     metadata_key = db.Column(db.String(128), db.ForeignKey('mainresult.metadata_key'), primary_key=True)
     ts = db.Column(db.String(50), primary_key=True)
 
@@ -60,7 +64,7 @@ class IndividualTracerouteResult_Value(db.Model):
     rtt = db.Column(db.String(30), primary_key=True)
     ttl = db.Column(db.String(30), primary_key=True)
     query = db.Column(db.String(30), primary_key=True)
-    orderNumber = db.Column(db.Integer, primary_key=True)
+    orderNumber = db.Column(db.Integer, primary_key=True, autoincrement=False)
 
     def __init__(self, metadata_key, ts, ip, success, error_message, rtt, ttl, query, orderNumber):
         # MTU is not added as it's always null
@@ -75,6 +79,10 @@ class IndividualTracerouteResult_Value(db.Model):
         self.query = query
         self.orderNumber = orderNumber
 
+    def __repr__(self):
+        return '<MR:{}>'.format(self.metadata_key)
+
+
 class IPAddress_Location(db.Model):
     __tablename__ = "IPAddress_Location"
     ip = db.Column(db.String(30), primary_key=True)
@@ -85,8 +93,6 @@ class IPAddress_Location(db.Model):
 @app.route('/')
 def hello_world():
     return 'Hello World!'
-
-
 
 
 # Populate Everything
@@ -127,7 +133,7 @@ def populateDB():
 
                         for index, value in enumerate(subResult['val']):
                             print value['ip']
-                            valuesToAdd = IndividualTracerouteResult_Value(newResult['metadata-key'], subResult['ts'],
+                            valuesToAdd = IndividualTracerouteResult(newResult['metadata-key'], subResult['ts'],
                                                                            str(value['ip']),
                                                                            str(value['success']),
                                                                            str(value['error_message']),
@@ -160,17 +166,20 @@ def populateDB():
 
     return 'Hello World!'
 
+
 # Get Erroneous Traceroute
 @app.route('/getErroneousTracerouteRtt')
 def erroneousTracerouteRTT():
 
+    # print type(IndividualTracerouteResult_Value)
+    # print type(MainResult)
+    # IndividualTracerouteResult.query.filter_by(metadata_key='03d49625b00643058a40eb8672e94f4e').first()
+    # print IndividualTracerouteResult.query.get(("03d49625b00643058a40eb8672e94f4e", "1470860955"))
+    print db.session.query(IndividualTracerouteResult).filter_by(metadata_key='03d49625b00643058a40eb8672e94f4e').first().ts
 
-
-    IndividualTracerouteResult_Value.query.filter_by(metadata_key='03d49625b00643058a40eb8672e94f4e').first()
     print MainResult.query.get("03d49625b00643058a40eb8672e94f4e")
 
     return 'Hello World!'
-
 
 
 # Populate New
@@ -178,8 +187,6 @@ def erroneousTracerouteRTT():
 @app.route('/x')
 def hello_world2():
     return 'Hello World!!!!'
-
-
 
 
 if __name__ == '__main__':
