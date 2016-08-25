@@ -1,10 +1,22 @@
 from flask import Flask
-import requests
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+#import requests
+#from flask_sqlalchemy import SQLAlchemy
+#from flask_migrate import Migrate
 from flask import request
 from flask import jsonify
-import socket
+#import socket
+
+
+import dns.resolver
+#from dns.exception import DNSException
+import dns.query,dns.reversename
+
+#Deployment: pip install gunicorn
+# Remember to set it as a service
+# http://docs.gunicorn.org/en/stable/deploy.html#systemd
+# Remove Requires=gunicorn.socket in socket as we are not using NGINX.
+# https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-centos-7
+
 
 
 app = Flask(__name__)
@@ -288,15 +300,37 @@ app = Flask(__name__)
 def reversedns():
     try:
         ipaddr = request.args.get('ipaddress')
-        returnedData = socket.gethostbyaddr(ipaddr)
-        print returnedData
-        return jsonify(dns=returnedData[0],ip=ipaddr)
-    except (socket.timeout, socket.gaierror):
-        return jsonify(dns="Timeout", ip=ipaddr)
-    except socket.herror:
+        resolver = dns.resolver.Resolver()
+        # resolver.timeout = 1
+        # resolver.lifetime = 1
+
+        # return resolver.query(ipaddr)
+        addr = dns.reversename.from_address(ipaddr)
+        toPrint = str(resolver.query(addr,"PTR")[0])
+        return jsonify(dns=toPrint, ip=ipaddr)
+    except dns.exception.SyntaxError:
+        return jsonify(dns="Syntax Error", ip=ipaddr)
+    except dns.exception.Timeout:
+        return jsonify(dns="Reqest Timed Out", ip=ipaddr)
+    except dns.exception.DNSException:
         return jsonify(dns="Unknown", ip=ipaddr)
-    except socket.error:
-        return jsonify(dns="Error", ip=ipaddr)
+    except dns.exception.TooBig:
+        return jsonify(dns="Unknown", ip=ipaddr)
+    except dns.exception:
+        return jsonify(dns="Unknown", ip=ipaddr)
+
+
+    # try:
+    #     ipaddr = request.args.get('ipaddress')
+    #     returnedData = socket.gethostbyaddr(ipaddr)
+    #     print returnedData
+    #     return jsonify(dns=returnedData[0],ip=ipaddr)
+    # except (socket.timeout, socket.gaierror):
+    #     return jsonify(dns="Timed out", ip=ipaddr)
+    # except socket.herror:
+    #     return jsonify(dns="Unknown", ip=ipaddr)
+    # except socket.error:
+    #     return jsonify(dns="Error", ip=ipaddr)
 
 
 
