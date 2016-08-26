@@ -1,0 +1,37 @@
+[uwsgi]
+module = wsgi:app
+
+master = true
+processes = 5
+
+socket = F546App.sock
+chmod-socket = 660
+vacuum = true
+
+die-on-term = true
+
+
+[Unit]
+Description=uWSGI instance to serve F546 App
+After=network.target
+
+[Service]
+User=root
+Group=www-data
+WorkingDirectory=/var/F546Backend/F546_Flask
+Environment="PATH=/var/F546Backend/VirtualEnvr_F546/bin"
+ExecStart=/var/F546Backend/VirtualEnvr_F546/bin/uwsgi --ini FlaskApp.ini
+
+[Install]
+WantedBy=multi-user.target
+
+
+server {
+    listen 80;
+    server_name 203.30.39.133;
+
+    location / {
+        include uwsgi_params;
+        uwsgi_pass unix:///var/F546Backend/F546_Flask/F546App.sock;
+    }
+}

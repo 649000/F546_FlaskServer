@@ -1,25 +1,17 @@
-from flask import Flask
-#import requests
-#from flask_sqlalchemy import SQLAlchemy
-#from flask_migrate import Migrate
-from flask import request
-from flask import jsonify
-#import socket
-
-
+import dns.query
 import dns.resolver
-#from dns.exception import DNSException
-import dns.query,dns.reversename
+import dns.reversename
+from flask import Flask
+from flask import jsonify
+from flask import request
+from flask import url_for
+from flask import redirect
 
-#Deployment: pip install gunicorn
-# Remember to set it as a service
-# http://docs.gunicorn.org/en/stable/deploy.html#systemd
-# Remove Requires=gunicorn.socket in socket as we are not using NGINX.
-# https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-centos-7
+app = Flask(__name__,static_url_path='')
 
 
 
-app = Flask(__name__)
+app = Flask(__name__,static_url_path='')
 # db = SQLAlchemy(app)
 # migrate = Migrate(app, db)
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@localhost/F546'
@@ -295,6 +287,11 @@ app = Flask(__name__)
 #     print len(rawDataList)
 #     return 'Hello World!'
 #
+
+@app.route('/')
+def index():
+    # return redirect(url_for('static', filename='index.html'))
+    return app.send_static_file('index.html')
 
 @app.route('/reversednslookup')
 def reversedns():
