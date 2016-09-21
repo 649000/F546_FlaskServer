@@ -308,7 +308,7 @@ def reversedns():
     except dns.exception.SyntaxError:
         return jsonify(dns="Syntax Error", ip=ipaddr)
     except dns.exception.Timeout:
-        return jsonify(dns="Reqest Timed Out", ip=ipaddr)
+        return jsonify(dns="Request Timed Out", ip=ipaddr)
     except dns.exception.DNSException:
         return jsonify(dns="Unknown", ip=ipaddr)
     except dns.exception.TooBig:
